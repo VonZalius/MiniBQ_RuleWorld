@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexa Life Simulator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+#container {
+    display: flex;
+    gap: 20px;
+    max-width: 1400px;
+    width: 100%;
+}
+
+#left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+#canvasWrapper {
+    background: white;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    overflow: visible;
+    border-radius: 8px;
+}
+
+#canvas {
+    display: block;
+    cursor: crosshair;
+    border-radius: 8px;
+}
+
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+button {
+    padding: 10px 16px;
+    font-size: 14px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-weight: 500;
+}
+
+button:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+select, input {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: white;
+    transition: all 0.2s;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#right {
+    width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+#editor-container {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+#editor {
+    height: 300px;
+}
+
+.CodeMirror {
+    height: 100%;
+    font-size: 13px;
+}
+
+#rule-controls {
+    display: flex;
+    gap: 8px;
+}
+
+#rule-controls button {
+    flex: 1;
+}
+
+#console {
+    background: #2d2d2d;
+    color: #d4d4d4;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+#console.empty {
+    color: #666;
+    font-style: italic;
+}
+
+.console-error {
+    color: #f48771;
+}
+
+.console-warn {
+    color: #dcdcaa;
+}
+
+.console-info {
+    color: #4fc1ff;
+}
+
+.console-success {
+    color: #4ec9b0;
+}
+
+#lexique {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+#lexique h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+#lexique code {
+    background: #f8f9fa;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    color: #667eea;
+    font-size: 12px;
+}
+
+#lexique ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+#lexique li {
+    margin: 4px 0;
+}
+
+#status {
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    font-weight: 500;
+    color: #555;
+}
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+</head>
+
+<body>
+<div id="container">
+
+<div id="left">
+    <div id="canvasWrapper">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="controls">
+        <div class="control-group">
+            <button id="pause">▶ Démarrer</button>
+            <button id="step">+1 Génération</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Vitesse:
+                <input id="speed" type="range" min="50" max="2000" value="500" style="width: 120px;">
+            </label>
+            <span id="speedDisplay">500ms</span>
+        </div>
+        
+        <div class="control-group">
+            <button id="resetGrid">🎲 Aléatoire</button>
+            <button id="clearGrid">🗑 Vider</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Pinceau:
+                <select id="brush"></select>
+            </label>
+        </div>
+    </div>
+
+    <div id="status">Génération: <span id="gen">0</span> | <span id="active">0</span></div>
+</div>
+
+<div id="right">
+    <div id="editor-container">
+        <div id="editor"></div>
+    </div>
+    
+    <div id="rule-controls">
+        <button id="applyRule">✓ Appliquer la règle</button>
+        <button id="resetRule">↺ Réinitialiser</button>
+    </div>
+
+    <div id="console" class="empty">Console: aucune erreur</div>
+
+    <div id="lexique">
+        <h3>📖 Guide des règles</h3>
+        
+        <p><code>function(state, q, r, get, getHistory)</code></p>
+        
+        <ul>
+            <li><b>state</b> : état actuel de la cellule</li>
+            <li><b>q, r</b> : coordonnées hexagonales</li>
+            <li><b>get(q, r)</b> : lire l'état actuel d'une cellule</li>
+            <li><b>getHistory(offset, q, r)</b> : lire l'état d'une cellule dans l'historique (offset négatif, ex: -1 pour génération précédente)</li>
+        </ul>
+        
+        <p><b>Retour :</b> le nouvel état de la cellule (string)</p>
+        <p><b>Astuce :</b> Si le nom de l'état est une couleur HTML (ex: "blue", "#ff0000", "rgb(255,0,0)"), elle sera utilisée directement !</p>
+    </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+
+<script>
+// ================== CONSOLE DEBUG ==================
+const consoleDiv = document.getElementById("console");
+const consoleMessages = [];
+
+function logToConsole(message, type = "info") {
+    const timestamp = new Date().toLocaleTimeString();
+    const prefix = type === "error" ? "❌" : type === "warn" ? "⚠️" : type === "success" ? "✓" : "ℹ️";
+    const fullMessage = `[${timestamp}] ${prefix} ${message}`;
+    
+    consoleMessages.push({ message: fullMessage, type });
+    if (consoleMessages.length > 20) consoleMessages.shift();
+    
+    consoleDiv.classList.remove("empty");
+    consoleDiv.innerHTML = consoleMessages
+        .map(m => `<div class="console-${m.type}">${m.message}</div>`)
+        .join("");
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+function clearConsole() {
+    consoleMessages.length = 0;
+    consoleDiv.innerHTML = "Console: aucune erreur";
+    consoleDiv.classList.add("empty");
+}
+
+// ================== CONFIGURATION ==================
+const CONFIG = {
+    GRID_SIZE: 17,
+    HEX_RADIUS: 12,
+    DEFAULT_SPEED: 500,
+    DIRECTIONS: [[1,0], [1,-1], [0,-1], [-1,0], [-1,1], [0,1]],
+    MAX_HISTORY: 10
+};
+
+const DEFAULT_STATES = {
+    off: "#ffffff",
+    on: "#000000"
+};
+
+// ================== CLASSE HEXGRID ==================
+class HexGrid {
+    constructor(size) {
+        this.size = size;
+        this.grid = {};
+        this.generation = 0;
+        this.history = []; // Historique des grilles précédentes
+        this.initialize();
+    }
+
+    initialize() {
+        for (let q = -this.size; q <= this.size; q++) {
+            for (let r = -this.size; r <= this.size; r++) {
+                if (Math.abs(q + r) <= this.size) {
+                    this.grid[`${q},${r}`] = "off";
+                }
+            }
+        }
+        this.saveToHistory();
+    }
+
+    get(q, r) {
+        const key = `${q},${r}`;
+        return this.grid[key];
+    }
+
+    set(q, r, state) {
+        const key = `${q},${r}`;
+        if (this.grid[key] !== undefined) {
+            this.grid[key] = state;
+        }
+    }
+
+    getNeighbors(q, r) {
+        return CONFIG.DIRECTIONS.map(([dq, dr]) => this.get(q + dq, r + dr));
+    }
+
+    clear() {
+        for (let key in this.grid) {
+            this.grid[key] = "off";
+        }
+        this.generation = 0;
+        this.history = [];
+        this.saveToHistory();
+    }
+
+    randomize(seed = Date.now()) {
+        const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        for (let key in this.grid) {
+            this.grid[key] = rand() < 0.3 ? "on" : "off";
+        }
+        this.generation = 0;
+        this.history = [];
+        this.saveToHistory();
+    }
+
+    countStates() {
+        const counts = {};
+        for (let key in this.grid) {
+            const state = this.grid[key];
+            if (!counts[state]) counts[state] = 0;
+            counts[state]++;
+        }
+        return counts;
+    }
+
+    getAllCells() {
+        return Object.keys(this.grid).map(key => {
+            const [q, r] = key.split(",").map(Number);
+            return { q, r, state: this.grid[key] };
+        });
+    }
+
+    saveToHistory() {
+        this.history.push({ ...this.grid });
+        if (this.history.length > CONFIG.MAX_HISTORY) {
+            this.history.shift();
+        }
+    }
+
+    getFromHistory(index, q, r) {
+        if (index < 0 || index >= this.history.length) return undefined;
+        const key = `${q},${r}`;
+        return this.history[index][key];
+    }
+
+    getCurrentHistorySize() {
+        return this.history.length;
+    }
+}
+
+// ================== CLASSE RENDERER ==================
+class HexRenderer {
+    constructor(canvas, hexRadius) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.hexRadius = hexRadius;
+        this.stateColors = { ...DEFAULT_STATES };
+        this.padding = 20;
+    }
+
+    calculateCanvasSize(gridSize) {
+        const width = this.hexRadius * Math.sqrt(3) * gridSize * 2 + this.padding * 2;
+        const height = this.hexRadius * 1.5 * gridSize * 2 + this.hexRadius + this.padding * 2;
+        return [width, height];
+    }
+
+    toPixel(q, r) {
+        const x = this.hexRadius * Math.sqrt(3) * (q + r / 2) + this.canvas.width / 2;
+        const y = this.hexRadius * 1.5 * r + this.canvas.height / 2;
+        return [x, y];
+    }
+
+    fromPixel(x, y) {
+        const relX = x - this.canvas.width / 2;
+        const relY = y - this.canvas.height / 2;
+        const r = Math.round(relY / (this.hexRadius * 1.5));
+        const q = Math.round((relX / (this.hexRadius * Math.sqrt(3))) - r / 2);
+        return [q, r];
+    }
+
+    drawHexagon(x, y, color) {
+        this.ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 3 * i - Math.PI / 6;
+            const hx = x + this.hexRadius * Math.cos(angle);
+            const hy = y + this.hexRadius * Math.sin(angle);
+            if (i === 0) {
+                this.ctx.moveTo(hx, hy);
+            } else {
+                this.ctx.lineTo(hx, hy);
+            }
+        }
+        this.ctx.closePath();
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+        this.ctx.strokeStyle = "#e8e8e8";
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+    }
+
+    render(grid) {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        for (let cell of grid.getAllCells()) {
+            const [x, y] = this.toPixel(cell.q, cell.r);
+            const color = this.stateColors[cell.state] || "#ff00ff";
+            this.drawHexagon(x, y, color);
+        }
+    }
+
+    addStateColor(state, color) {
+        if (!this.stateColors[state]) {
+            // Vérifier si le nom d'état est une couleur HTML valide
+            const testColor = this.isValidColor(state) ? state : color;
+            this.stateColors[state] = testColor;
+            logToConsole(`Nouvel état créé: "${state}" → ${testColor}`, "success");
+        }
+    }
+
+    isValidColor(color) {
+        // Créer un élément temporaire pour tester si la couleur est valide
+        const s = new Option().style;
+        s.color = color;
+        return s.color !== '';
+    }
+
+    getStateColors() {
+        return { ...this.stateColors };
+    }
+}
+
+// ================== CLASSE SIMULATOR ==================
+class HexSimulator {
+    constructor(grid, renderer) {
+        this.grid = grid;
+        this.renderer = renderer;
+        this.rule = (state) => state;
+        this.running = false;
+        this.speed = CONFIG.DEFAULT_SPEED;
+        this.timer = null;
+        this.errorCount = 0;
+    }
+
+    setRule(ruleFunction) {
+        this.rule = ruleFunction;
+        this.errorCount = 0;
+    }
+
+    step() {
+        const nextGrid = {};
+        const boundGet = (q, r) => this.grid.get(q, r);
+        
+        // Créer fonction d'accès à l'historique
+        const boundGetHistory = (genOffset, q, r) => {
+            const histIndex = this.grid.history.length - 1 + genOffset;
+            return this.grid.getFromHistory(histIndex, q, r);
+        };
+        
+        let errorThisStep = false;
+
+        for (let cell of this.grid.getAllCells()) {
+            try {
+                const newState = this.rule(cell.state, cell.q, cell.r, boundGet, boundGetHistory);
+                
+                if (newState === undefined || newState === null) {
+                    nextGrid[`${cell.q},${cell.r}`] = cell.state;
+                } else if (typeof newState !== "string") {
+                    if (!errorThisStep) {
+                        logToConsole(`Erreur: la règle doit retourner une string, reçu ${typeof newState}`, "error");
+                        errorThisStep = true;
+                    }
+                    nextGrid[`${cell.q},${cell.r}`] = cell.state;
+                } else {
+                    nextGrid[`${cell.q},${cell.r}`] = newState;
+                    
+                    if (newState && !this.renderer.stateColors[newState]) {
+                        this.renderer.addStateColor(newState, this.generateColor(newState));
+                    }
+                }
+            } catch (e) {
+                if (this.errorCount < 5) {
+                    logToConsole(`Erreur règle (${cell.q},${cell.r}): ${e.message}`, "error");
+                    this.errorCount++;
+                }
+                nextGrid[`${cell.q},${cell.r}`] = cell.state;
+            }
+        }
+
+        this.grid.grid = nextGrid;
+        this.grid.generation++;
+        this.grid.saveToHistory();
+    }
+
+    generateColor(state) {
+        let hash = 0;
+        for (let i = 0; i < state.length; i++) {
+            hash = state.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = Math.abs(hash) % 360;
+        return `hsl(${hue}, 70%, 55%)`;
+    }
+
+    start() {
+        if (this.running) return;
+        this.running = true;
+        logToConsole("Simulation démarrée", "success");
+        this.timer = setInterval(() => {
+            this.step();
+            this.renderer.render(this.grid);
+            this.updateUI();
+        }, this.speed);
+    }
+
+    stop() {
+        this.running = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+            logToConsole("Simulation en pause", "info");
+        }
+    }
+
+    setSpeed(ms) {
+        this.speed = ms;
+        if (this.running) {
+            this.stop();
+            this.start();
+        }
+    }
+
+    updateUI() {
+        document.getElementById("gen").textContent = this.grid.generation;
+
+        const counts = this.grid.countStates();
+        const activeDiv = document.getElementById("active");
+        
+        // Génère une string "On: 12 | Off: 30 | Custom1: 5"
+        const countStrings = Object.entries(counts)
+            .map(([state, num]) => `${state}: ${num}`)
+            .join(" | ");
+        
+        activeDiv.textContent = countStrings;
+    }
+
+}
+
+// ================== INITIALISATION ==================
+const canvas = document.getElementById("canvas");
+const grid = new HexGrid(CONFIG.GRID_SIZE);
+const renderer = new HexRenderer(canvas, CONFIG.HEX_RADIUS);
+
+const [canvasWidth, canvasHeight] = renderer.calculateCanvasSize(CONFIG.GRID_SIZE);
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
+
+const simulator = new HexSimulator(grid, renderer);
+
+let brushState = "on";
+
+// ================== ÉDITEUR CODEMIRROR ==================
+const DEFAULT_RULE = `// Règle exemple : Jeu de la vie hexagonal
+// Une cellule "off" devient "on" si elle a exactement 2 voisins "on"
+// Une cellule "on" reste "on" si elle a 2 ou 3 voisins "on"
+
+// Compter les voisins "on" manuellement
+let count = 0;
+const dirs = [[1,0], [1,-1], [0,-1], [-1,0], [-1,1], [0,1]];
+for (let [dq, dr] of dirs) {
+    if (get(q + dq, r + dr) === "on") {
+        count++;
+    }
+}
+
+if (state === "off" && count === 2) {
+    return "on";
+}
+
+if (state === "on" && (count === 2 || count === 3)) {
+    return "on";
+}
+
+return "off";`;
+
+const editor = CodeMirror(document.getElementById("editor"), {
+    mode: "javascript",
+    theme: "monokai",
+    lineNumbers: true,
+    value: DEFAULT_RULE,
+    lineWrapping: true
+});
+
+// ================== GESTION SOURIS ==================
+canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const [q, r] = renderer.fromPixel(x, y);
+    
+    grid.set(q, r, brushState);
+    renderer.render(grid);
+    simulator.updateUI();
+});
+
+// ================== INTERFACE UTILISATEUR ==================
+function refreshBrushSelect() {
+    const select = document.getElementById("brush");
+    select.innerHTML = "";
+    
+    const colors = renderer.getStateColors();
+    for (let state in colors) {
+        const option = document.createElement("option");
+        option.value = state;
+        option.textContent = state;
+        select.appendChild(option);
+    }
+    select.value = brushState;
+}
+
+document.getElementById("brush").addEventListener("change", (e) => {
+    brushState = e.target.value;
+});
+
+document.getElementById("pause").addEventListener("click", () => {
+    const btn = document.getElementById("pause");
+    if (simulator.running) {
+        simulator.stop();
+        btn.textContent = "▶ Démarrer";
+        btn.classList.remove("active");
+    } else {
+        simulator.start();
+        btn.textContent = "⏸ Pause";
+        btn.classList.add("active");
+    }
+});
+
+document.getElementById("step").addEventListener("click", () => {
+    simulator.step();
+    renderer.render(grid);
+    simulator.updateUI();
+    refreshBrushSelect();
+});
+
+document.getElementById("resetGrid").addEventListener("click", () => {
+    grid.randomize();
+    renderer.render(grid);
+    simulator.updateUI();
+    logToConsole("Grille réinitialisée aléatoirement", "info");
+});
+
+document.getElementById("clearGrid").addEventListener("click", () => {
+    grid.clear();
+    renderer.render(grid);
+    simulator.updateUI();
+    logToConsole("Grille vidée", "info");
+});
+
+document.getElementById("speed").addEventListener("input", (e) => {
+    const speed = parseInt(e.target.value);
+    document.getElementById("speedDisplay").textContent = speed + "ms";
+    simulator.setSpeed(speed);
+});
+
+document.getElementById("applyRule").addEventListener("click", () => {
+    clearConsole();
+    try {
+        const code = editor.getValue();
+        const ruleFunc = new Function("state", "q", "r", "get", "getHistory", code);
+        
+        // Test de la règle sur une cellule fictive
+        const testGet = (q, r) => "off";
+        const testGetHistory = (offset, q, r) => "off";
+        const testResult = ruleFunc("off", 0, 0, testGet, testGetHistory);
+        
+        if (typeof testResult !== "string") {
+            throw new Error(`La fonction doit retourner une string, reçu: ${typeof testResult}`);
+        }
+        
+        // Extraire tous les états possibles du code
+        const stateMatches = code.matchAll(/return\s+["']([^"']+)["']/g);
+        const discoveredStates = new Set(["on", "off"]); // Toujours garder on et off
+        
+        for (const match of stateMatches) {
+            discoveredStates.add(match[1]);
+        }
+        
+        // Réinitialiser les couleurs aux états de base + nouveaux états
+        renderer.stateColors = { off: "#ffffff", on: "#000000" };
+        
+        for (const state of discoveredStates) {
+            if (state !== "on" && state !== "off") {
+                renderer.addStateColor(state, simulator.generateColor(state));
+            }
+        }
+        
+        simulator.setRule(ruleFunc);
+        refreshBrushSelect();
+        logToConsole("✓ Règle appliquée avec succès", "success");
+        logToConsole(`États détectés: ${Array.from(discoveredStates).join(", ")}`, "info");
+        
+    } catch (e) {
+        logToConsole(`Erreur de syntaxe: ${e.message}`, "error");
+    }
+});
+
+document.getElementById("resetRule").addEventListener("click", () => {
+    simulator.setRule((state) => state);
+    editor.setValue("return state;");
+    clearConsole();
+    logToConsole("Règle réinitialisée", "info");
+});
+
+// ================== DÉMARRAGE ==================
+grid.randomize();
+renderer.render(grid);
+simulator.updateUI();
+refreshBrushSelect();
+logToConsole("Simulateur prêt", "success");
+</script>
+</body>
+</html>
