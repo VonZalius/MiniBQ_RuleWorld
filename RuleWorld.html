@@ -704,14 +704,33 @@ const editor = CodeMirror(document.getElementById("editor"), {
 // ================== GESTION SOURIS ==================
 canvas.addEventListener("click", (e) => {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    // Inverser le zoom et la translation
+    x -= canvas.width / 2;
+    y -= canvas.height / 2;
+    x /= zoomLevel;
+    y /= zoomLevel;
+
+    // Inverser la rotation
+    const rad = -rotationDeg * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const xRot = x * cos - y * sin;
+    const yRot = x * sin + y * cos;
+
+    // Recentrer
+    x = xRot + canvas.width / 2;
+    y = yRot + canvas.height / 2;
+
     const [q, r] = renderer.fromPixel(x, y);
     
     grid.set(q, r, brushState);
     renderer.render(grid);
     simulator.updateUI();
 });
+
 
 // ================== INTERFACE UTILISATEUR ==================
 function refreshBrushSelect() {
