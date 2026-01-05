@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hexa Life Simulator</title>
+<title>RuleWorld</title>
 
 <style>
 * {
@@ -260,6 +260,24 @@ label {
                 <select id="brush"></select>
             </label>
         </div>
+
+        <div class="control-group">
+            <label>Taille:
+                <input id="gridSize" type="number" min="3" max="50" value="17" style="width: 60px;">
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label>Rotation:
+                <input id="rotation" type="range" min="0" max="360" value="0" style="width: 120px;">
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label>Zoom:
+                <input id="zoom" type="range" min="0.5" max="2.5" step="0.01" value="1" style="width: 120px;">
+            </label>
+        </div>
     </div>
 
     <div id="status">Génération: <span id="gen">0</span> | <span id="active">0</span></div>
@@ -290,7 +308,8 @@ label {
         </ul>
         
         <p><b>Retour :</b> le nouvel état de la cellule (string)</p>
-        <p><b>Astuce :</b> Si le nom de l'état est une couleur HTML (ex: "blue", "#ff0000", "rgb(255,0,0)"), elle sera utilisée directement !</p>
+        <p><b>Couleurs :</b> Si le nom de l'état est une couleur HTML (ex: "blue", "#ff0000", "rgb(255,0,0)"), elle sera utilisée directement !</p>
+        <p><b>Coordonnées :</b> Sans avoir tourné la zone, comparé à la cellule actuelle, voici a quoi correspondent les coordonnées <b>q;r</b> : West(-1,0) / NordWest(0,-1) / SouthWest(-1,+1) / East(+1,0) / SouthEast(0,+1) / NordEast(+1,-1)</p>
     </div>
 </div>
 
@@ -338,6 +357,9 @@ const DEFAULT_STATES = {
     off: "#ffffff",
     on: "#000000"
 };
+
+let rotationDeg = 0;
+let zoomLevel = 1;
 
 // ================== CLASSE HEXGRID ==================
 class HexGrid {
@@ -482,13 +504,22 @@ class HexRenderer {
 
     render(grid) {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
+        this.ctx.save();
+        this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.rotate(rotationDeg * Math.PI / 180);
+        this.ctx.scale(zoomLevel, zoomLevel);
+        this.ctx.translate(-this.canvas.width / 2, -this.canvas.height / 2);
+
         for (let cell of grid.getAllCells()) {
             const [x, y] = this.toPixel(cell.q, cell.r);
             const color = this.stateColors[cell.state] || "#ff00ff";
             this.drawHexagon(x, y, color);
         }
+
+        this.ctx.restore();
     }
+
 
     addStateColor(state, color) {
         if (!this.stateColors[state]) {
@@ -628,12 +659,11 @@ class HexSimulator {
 
 // ================== INITIALISATION ==================
 const canvas = document.getElementById("canvas");
-const grid = new HexGrid(CONFIG.GRID_SIZE);
+let grid = new HexGrid(CONFIG.GRID_SIZE);
 const renderer = new HexRenderer(canvas, CONFIG.HEX_RADIUS);
 
-const [canvasWidth, canvasHeight] = renderer.calculateCanvasSize(CONFIG.GRID_SIZE);
-canvas.width = canvasWidth;
-canvas.height = canvasHeight;
+canvas.width = 1000;
+canvas.height = 800;
 
 const simulator = new HexSimulator(grid, renderer);
 
@@ -790,6 +820,29 @@ document.getElementById("resetRule").addEventListener("click", () => {
     clearConsole();
     logToConsole("Règle réinitialisée", "info");
 });
+
+document.getElementById("gridSize").addEventListener("change", (e) => {
+    const newSize = parseInt(e.target.value);
+
+    grid = new HexGrid(newSize);
+    simulator.grid = grid;
+
+    zoomLevel = Math.min(1.5, 20 / newSize);
+
+    renderer.render(grid);
+    simulator.updateUI();
+});
+
+document.getElementById("rotation").addEventListener("input", (e) => {
+    rotationDeg = parseFloat(e.target.value);
+    renderer.render(grid);
+});
+
+document.getElementById("zoom").addEventListener("input", (e) => {
+    zoomLevel = parseFloat(e.target.value);
+    renderer.render(grid);
+});
+
 
 // ================== DÉMARRAGE ==================
 grid.randomize();
