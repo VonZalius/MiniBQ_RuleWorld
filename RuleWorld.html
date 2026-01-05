@@ -239,30 +239,30 @@ label {
 
     <div id="controls">
         <div class="control-group">
-            <button id="pause">▶ Démarrer</button>
-            <button id="step">+1 Génération</button>
+            <button id="pause">▶ Start</button>
+            <button id="step">+1 Generation</button>
         </div>
         
         <div class="control-group">
-            <label>Vitesse:
+            <label>Speed:
                 <input id="speed" type="range" min="50" max="2000" value="500" style="width: 120px;">
             </label>
             <span id="speedDisplay">500ms</span>
         </div>
         
         <div class="control-group">
-            <button id="resetGrid">🎲 Aléatoire</button>
-            <button id="clearGrid">🗑 Vider</button>
+            <button id="resetGrid">🎲 Random</button>
+            <button id="clearGrid">🗑 Clear</button>
         </div>
         
         <div class="control-group">
-            <label>Pinceau:
+            <label>Brush:
                 <select id="brush"></select>
             </label>
         </div>
 
         <div class="control-group">
-            <label>Taille:
+            <label>Size:
                 <input id="gridSize" type="number" min="3" max="50" value="17" style="width: 60px;">
             </label>
         </div>
@@ -280,7 +280,7 @@ label {
         </div>
     </div>
 
-    <div id="status">Génération: <span id="gen">0</span> | <span id="active">0</span></div>
+    <div id="status">Generation: <span id="gen">0</span> | <span id="active">0</span></div>
 </div>
 
 <div id="right">
@@ -289,29 +289,30 @@ label {
     </div>
     
     <div id="rule-controls">
-        <button id="applyRule">✓ Appliquer la règle</button>
-        <button id="resetRule">↺ Réinitialiser</button>
+        <button id="applyRule">✓ Apply rule</button>
+        <button id="resetRule">↺ Reset</button>
     </div>
 
-    <div id="console" class="empty">Console: aucune erreur</div>
+    <div id="console" class="empty">Console: no errors</div>
 
     <div id="lexique">
-        <h3>📖 Guide des règles</h3>
+        <h3>📖 Rule guide</h3>
         
         <p><code>function(state, q, r, get, getHistory)</code></p>
         
         <ul>
-            <li><b>state</b> : état actuel de la cellule</li>
-            <li><b>q, r</b> : coordonnées hexagonales</li>
-            <li><b>get(q, r)</b> : lire l'état actuel d'une cellule</li>
-            <li><b>getHistory(offset, q, r)</b> : lire l'état d'une cellule dans l'historique (offset négatif, ex: -1 pour génération précédente)</li>
+            <li><b>state</b> : current cell state</li>
+            <li><b>q, r</b> : hexagonal coordinates</li>
+            <li><b>get(q, r)</b> : read the current state of a cell</li>
+            <li><b>getHistory(offset, q, r)</b> : read a cell state from history (negative offset, e.g. -1 for previous generation)</li>
         </ul>
         
-        <p><b>Retour :</b> le nouvel état de la cellule (string)</p>
-        <p><b>Couleurs :</b> Si le nom de l'état est une couleur HTML (ex: "blue", "#ff0000", "rgb(255,0,0)"), elle sera utilisée directement !</p>
-        <p><b>Coordonnées :</b> Sans avoir tourné la zone, comparé à la cellule actuelle, voici a quoi correspondent les coordonnées <b>q;r</b> : West(-1,0) / NordWest(0,-1) / SouthWest(-1,+1) / East(+1,0) / SouthEast(0,+1) / NordEast(+1,-1)</p>
+        <p><b>Return:</b> the new cell state (string)</p>
+        <p><b>Colors:</b> If the state name is an HTML color (e.g. "blue", "#ff0000", "rgb(255,0,0)"), it will be used directly!</p>
+        <p><b>Coordinates:</b> Without rotating the grid, relative to the current cell, the <b>q;r</b> coordinates correspond to: West(-1,0) / NorthWest(0,-1) / SouthWest(-1,+1) / East(+1,0) / SouthEast(0,+1) / NorthEast(+1,-1)</p>
     </div>
 </div>
+
 
 </div>
 

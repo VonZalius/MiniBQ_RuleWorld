@@ -1,8 +1,8 @@
-// ================== Jeu de la vie hexagonal ==================
-// Une cellule "off" devient "on" si elle a exactement 2 voisins "on"
-// Une cellule "on" reste "on" si elle a 2 ou 3 voisins "on"
+// ================== Hexagonal Game of Life ==================
+// An "off" cell becomes "on" if it has exactly 2 "on" neighbors
+// An "on" cell stays "on" if it has 2 or 3 "on" neighbors
 
-// Compter les voisins "on" manuellement
+// Manually count "on" neighbors
 let count = 0;
 const dirs = [[1,0], [1,-1], [0,-1], [-1,0], [-1,1], [0,1]];
 for (let [dq, dr] of dirs) {
@@ -23,10 +23,11 @@ return "off";
 
 
 
-// ================== Simulation de gravité ==================
-// Une cellule "on" tombe si la cellule en dessous ou en diagonal en dessous est "off"
-// Une cellule "off" devient "on" si une cellule "on" est au dessus
-// Une cellule "off" devient "on" si une cellule "on" est en diagonal en haut-gauche ou en diagonal en haut-droit, si la cellule intermédiaire n'est pas "off"
+// ================== Gravity simulation ==================
+// An "on" cell falls if the cell below or diagonally below is "off"
+// An "off" cell becomes "on" if an "on" cell is above it
+// An "off" cell becomes "on" if an "on" cell is diagonally up-left or up-right,
+// provided the intermediate cell is not "off"
 var down = get(q, r + 1);
 var down_left = get(q - 1, r + 1);
 var down_right = get(q + 1, r);
@@ -49,44 +50,44 @@ return state;
 
 
 
-// ================== Diffusion de vie ==================
-/*Simule la vie qui pousse, évolue et décline de façon organique.
-- Les "on" initiaux sont transformés en états colorés selon leurs voisins.
-- Les cellules évoluent, peuvent se propager, se détruire ou disparaître.
+// ================== Life diffusion ==================
+/*Simulates life growing, evolving, and declining in an organic way.
+- Initial "on" cells are transformed into colored states based on neighbors.
+- Cells evolve, can spread, be destroyed, or disappear.
 
-Signification des couleurs :
-- green   : jeune pousse
-- blue    : cellule mature
-- orange  : cellule en déclin (decay)
-- yellow  : spark, foyer créateur de nouvelle vie
-- red     : chaos, foyer destructeur
-- off     : cellule vide / morte
+Color meaning:
+- green   : young sprout
+- blue    : mature cell
+- orange  : decaying cell
+- yellow  : spark, life-creating seed
+- red     : chaos, destructive seed
+- off     : empty / dead cell
 */
 
 const dirs = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 
-// --- Transformation des "on" initiaux ---
-// Selon le nombre de voisins "on", on remplace la cellule par un état de la simulation
+// --- Initial "on" transformation ---
+// Depending on the number of "on" neighbors, the cell is replaced by a simulation state
 if(state === "on") {
     let onNeighbors = 0;
     for (let [dq, dr] of dirs) {
         if(get(q+dq, r+dr) === "on") onNeighbors++;
     }
 
-    if(onNeighbors === 0) return "off";       // isolé → éteint
-    if(onNeighbors <= 2) return "green";      // petit cluster → pousse
-    if(onNeighbors <= 4) return "blue";       // cluster moyen → mature
-    return "orange";                          // cluster dense → decay
+    if(onNeighbors === 0) return "off";       // isolated → dies
+    if(onNeighbors <= 2) return "green";      // small cluster → sprout
+    if(onNeighbors <= 4) return "blue";       // medium cluster → mature
+    return "orange";                          // dense cluster → decay
 }
 
-// --- Comptage des voisins par état ---
+// --- Neighbor count per state ---
 let counts = { off:0, green:0, blue:0, orange:0, yellow:0, red:0 };
 for (let [dq, dr] of dirs) {
     const n = get(q + dq, r + dr);
     if (counts[n] !== undefined) counts[n]++;
 }
 
-// --- Densité locale sur un rayon de 2 (pour éviter surpopulation) ---
+// --- Local density within a radius of 2 (to prevent overpopulation) ---
 let localLife = 0;
 for (let dq=-2; dq<=2; dq++) {
     for (let dr=-2; dr<=2; dr++) {
@@ -96,51 +97,52 @@ for (let dq=-2; dq<=2; dq++) {
     }
 }
 
-// --- Historique pour maturation progressive ---
+// --- History for progressive maturation ---
 const last = getHistory(-1, q, r);
 const last2 = getHistory(-2, q, r);
 
-// --- Paramètres ---
-const densityThreshold = 8;   // limite de densité avant déclin
-const chaosChance = 0.0005;   // chance de foyer destructeur aléatoire
-const sparkChance = 0.001;    // chance de foyer de vie aléatoire
+// --- Parameters ---
+const densityThreshold = 8;   // density limit before decline
 
 switch(state) {
     case "off":
-        // --- Création déterministe de foyer (yellow) ---
-        if ( counts.blue === 1 && counts.green === 0 && counts.orange === 0 && counts.red === 0 && counts.yellow === 0)
+        // --- Deterministic creation of a seed (yellow) ---
+        if (
+            counts.blue === 1 && counts.green === 0 && counts.orange === 0 &&
+            counts.red === 0 && counts.yellow === 0
+        )
             return "yellow";
 
-        // --- Création aléatoire ---
+        // --- Random creation ---
         return "off";
 
-    case "green": // pousse
-        if (counts.red > 0) return "red";                       // destruction par chaos
-        if (localLife >= densityThreshold) return "orange";     // trop dense → decay
-        if (counts.blue + counts.green === 0) return "off";     // isolé → off
+    case "green": // sprout
+        if (counts.red > 0) return "red";                       // destroyed by chaos
+        if (localLife >= densityThreshold) return "orange";     // too dense → decay
+        if (counts.blue + counts.green === 0) return "off";     // isolated → off
         if (last==="green" && last2==="green" && getHistory(-3,q,r)==="green") return "blue"; // maturation
         return "green";
 
     case "blue": // mature
-        if (counts.red > 0) return "red";                       // destruction par chaos
-        if (counts.green + counts.blue <= 1) return "green";   // trop peu de voisins → redevenir pousse
-        if (localLife > densityThreshold + 6) return "orange";  // surpopulation → decay
+        if (counts.red > 0) return "red";                       // destroyed by chaos
+        if (counts.green + counts.blue <= 1) return "green";   // too few neighbors → revert to sprout
+        if (localLife > densityThreshold + 6) return "orange";  // overpopulation → decay
         return "blue";
 
     case "orange": // decay
-        if (counts.red > 0 || counts.orange >= 3) return "red"; // decay massif ou chaos → chaos
-        return "off";                                           // sinon disparaît
+        if (counts.red > 0 || counts.orange >= 3) return "red"; // massive decay or chaos → chaos
+        return "off";                                           // otherwise disappears
 
     case "yellow": // spark
-        if (counts.red > 0) return "red";                       // destruction par chaos
+        if (counts.red > 0) return "red";                       // destroyed by chaos
         for (let [dq, dr] of dirs) {
             const n = get(q+dq, r+dr);
-            if (n==="off") return "green";                     // spark crée une nouvelle pousse
+            if (n==="off") return "green";                     // spark creates a new sprout
         }
         return "off";
 
     case "red": // chaos
-        return "off";                                           // disparaît après effet
+        return "off";                                           // disappears after effect
 }
 
 return state;
