@@ -53,7 +53,6 @@ return state;
 /*Simule la vie qui pousse, évolue et décline de façon organique.
 - Les "on" initiaux sont transformés en états colorés selon leurs voisins.
 - Les cellules évoluent, peuvent se propager, se détruire ou disparaître.
-- Sur une grille vide, des clusters peuvent très rarement apparaitre après beaucoup de generations.
 
 Signification des couleurs :
 - green   : jeune pousse
@@ -113,8 +112,6 @@ switch(state) {
             return "yellow";
 
         // --- Création aléatoire ---
-        if (Math.random() < sparkChance) return "yellow"; 
-        if (Math.random() < chaosChance) return "red";
         return "off";
 
     case "green": // pousse
@@ -126,9 +123,8 @@ switch(state) {
 
     case "blue": // mature
         if (counts.red > 0) return "red";                       // destruction par chaos
-        if (last==="blue" && last2==="blue") return "orange";  // vieillissement → decay
         if (counts.green + counts.blue <= 1) return "green";   // trop peu de voisins → redevenir pousse
-        if (localLife > densityThreshold + 3) return "orange";  // surpopulation → decay
+        if (localLife > densityThreshold + 6) return "orange";  // surpopulation → decay
         return "blue";
 
     case "orange": // decay
