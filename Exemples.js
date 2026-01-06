@@ -2,6 +2,8 @@
 // An "off" cell becomes "on" if it has exactly 2 "on" neighbors
 // An "on" cell stays "on" if it has 2 or 3 "on" neighbors
 
+const { random } = require("lodash");
+
 // Manually count "on" neighbors
 let count = 0;
 const dirs = [[1,0], [1,-1], [0,-1], [-1,0], [-1,1], [0,1]];
@@ -51,18 +53,15 @@ return state;
 
 
 // ================== Life diffusion ==================
-/*Simulates life growing, evolving, and declining in an organic way.
-- Initial "on" cells are transformed into colored states based on neighbors.
-- Cells evolve, can spread, be destroyed, or disappear.
+// Simulates life growing, evolving, and declining in an organic way.
+// Initial "on" cells are transformed into colored states based on neighbors.
+// Cells evolve, can spread, be destroyed, or disappear.
 
-Color meaning:
-- green   : young sprout
-- blue    : mature cell
-- orange  : decaying cell
-- yellow  : spark, life-creating seed
-- red     : chaos, destructive seed
-- off     : empty / dead cell
-*/
+const SPROUT = "green"; //young sprout
+const MATURE = "blue";  //mature cell
+const DECAY = "orange"; //decaying cell
+const SPARK = "yellow"; //life-creating seed
+const CHAOS = "red";    //destructive seed
 
 const dirs = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 
@@ -75,9 +74,9 @@ if(state === "on") {
     }
 
     if(onNeighbors === 0) return "off";       // isolated → dies
-    if(onNeighbors <= 2) return "green";      // small cluster → sprout
-    if(onNeighbors <= 4) return "blue";       // medium cluster → mature
-    return "orange";                          // dense cluster → decay
+    if(onNeighbors <= 2) return SPROUT;      // small cluster → sprout
+    if(onNeighbors <= 4) return MATURE;       // medium cluster → mature
+    return DECAY;                          // dense cluster → decay
 }
 
 // --- Neighbor count per state ---
@@ -93,7 +92,7 @@ for (let dq=-2; dq<=2; dq++) {
     for (let dr=-2; dr<=2; dr++) {
         if (dq===0 && dr===0) continue;
         const n = get(q+dq, r+dr);
-        if (["green","blue"].includes(n)) localLife++;
+        if ([SPROUT,MATURE].includes(n)) localLife++;
     }
 }
 
@@ -111,38 +110,194 @@ switch(state) {
             counts.blue === 1 && counts.green === 0 && counts.orange === 0 &&
             counts.red === 0 && counts.yellow === 0
         )
-            return "yellow";
+            return SPARK;
 
         // --- Random creation ---
         return "off";
 
-    case "green": // sprout
-        if (counts.red > 0) return "red";                       // destroyed by chaos
-        if (localLife >= densityThreshold) return "orange";     // too dense → decay
+    case SPROUT: // sprout
+        if (counts.red > 0) return CHAOS;                       // destroyed by chaos
+        if (localLife >= densityThreshold) return DECAY;     // too dense → decay
         if (counts.blue + counts.green === 0) return "off";     // isolated → off
-        if (last==="green" && last2==="green" && getHistory(-3,q,r)==="green") return "blue"; // maturation
-        return "green";
+        if (last===SPROUT && last2===SPROUT && getHistory(-3,q,r)===SPROUT) return MATURE; // maturation
+        return SPROUT;
 
-    case "blue": // mature
-        if (counts.red > 0) return "red";                       // destroyed by chaos
-        if (counts.green + counts.blue <= 1) return "green";   // too few neighbors → revert to sprout
-        if (localLife > densityThreshold + 6) return "orange";  // overpopulation → decay
-        return "blue";
+    case MATURE: // mature
+        if (counts.red > 0) return CHAOS;                       // destroyed by chaos
+        if (counts.green + counts.blue <= 1) return SPROUT;   // too few neighbors → revert to sprout
+        if (localLife > densityThreshold + 6) return DECAY;  // overpopulation → decay
+        return MATURE;
 
-    case "orange": // decay
-        if (counts.red > 0 || counts.orange >= 3) return "red"; // massive decay or chaos → chaos
+    case DECAY: // decay
+        if (counts.red > 0 || counts.orange >= 3) return CHAOS; // massive decay or chaos → chaos
         return "off";                                           // otherwise disappears
 
-    case "yellow": // spark
-        if (counts.red > 0) return "red";                       // destroyed by chaos
+    case SPARK: // spark
+        if (counts.red > 0) return CHAOS;                       // destroyed by chaos
         for (let [dq, dr] of dirs) {
             const n = get(q+dq, r+dr);
-            if (n==="off") return "green";                     // spark creates a new sprout
+            if (n==="off") return SPROUT;                     // spark creates a new sprout
         }
         return "off";
 
-    case "red": // chaos
+    case CHAOS: // chaos
         return "off";                                           // disappears after effect
 }
 
 return state;
+return "green";
+return "blue";
+return "orange";
+return "yellow";
+return "red";
+
+
+
+// ================== Laser Shooter ==================
+// A blue button shoots a laser (green) when pressed (yellow)
+// The laser propagates to the right
+// A meteor generator (orange) randomly creates meteors (red)
+// Meteors fall down and disappear when a laser hits them
+
+const BUTTON = "blue";
+const BUTTON_PRESSED = "yellow";
+const LASER = "green";
+const METEOR_GENERATOR = "orange";
+const METEOR = "red";
+
+// --- button behavior ---
+if (state === BUTTON)
+  return BUTTON;
+
+if (state === BUTTON_PRESSED)
+  return getHistory(-1, q, r);
+
+// --- laser behavior ---
+if (state === LASER)
+  return "off";
+
+if (get(q-1, r) === BUTTON_PRESSED &&
+    getHistory(-1, q-1, r) === BUTTON)
+  return LASER;
+
+if (get(q-1, r) === LASER)
+  return LASER;
+
+// --- meteor behavior ---
+if (get(q+1, r-1) === METEOR_GENERATOR)
+    if (Math.random() < 0.02)
+        return METEOR;
+
+if (get(q+1, r-1) === METEOR)
+    return METEOR;
+
+if (state === METEOR)
+    return "off";
+
+return state;
+return "blue";
+return "yellow";
+return "orange";
+// User never need to place a laser (green) cell or a meteor (red)cell manually
+
+
+
+// ================== Auto-pathing with obstacles ==================
+// An orange cell propagates toward a yellow spark
+// Propagation follows the closest path to the spark
+// "on" cells are impassable obstacles
+// The yellow spark is absorbed when reached by orange
+
+const PLAYER = "orange";
+const DIRECTION = "yellow";
+
+const dirs = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+
+const GRID_RADIUS = 17;
+
+// --- hexagonal distance (used to move toward the spark) ---
+function hexDistance(q1, r1, q2, r2) {
+    return (Math.abs(q1 - q2)
+          + Math.abs(q1 + r1 - q2 - r2)
+          + Math.abs(r1 - r2)) / 2;
+}
+
+// --- global search for yellow sparks ---
+let sparks = [];
+for (let qq = -GRID_RADIUS; qq <= GRID_RADIUS; qq++) {
+    for (let rr = -GRID_RADIUS; rr <= GRID_RADIUS; rr++) {
+        if (get(qq, rr) === DIRECTION) {
+            sparks.push({ q: qq, r: rr });
+        }
+    }
+}
+
+// --- spark absorption ---
+// If a yellow cell is adjacent to an orange cell,
+// the spark is absorbed and becomes orange
+if (state === DIRECTION) {
+    for (let [dq, dr] of dirs) {
+        if (get(q + dq, r + dr) === PLAYER) {
+            return PLAYER;
+        }
+    }
+}
+
+// --- yellow cell behavior ---
+// Only one spark can exist at a time
+if (state === DIRECTION) {
+    if (sparks.length > 1) return "off";
+    return DIRECTION;
+}
+
+// --- orange cell behavior ---
+// If a spark exists elsewhere, the orange cell disappears
+if (state === PLAYER) {
+    if (sparks.length > 0) return "off";
+    return PLAYER;
+}
+
+// --- orange propagation toward the spark ---
+// A cell adjacent to an orange can become orange
+// if it is the closest one to the spark
+let adjacentOrange = null;
+for (let [dq, dr] of dirs) {
+    if (get(q + dq, r + dr) === PLAYER) {
+        adjacentOrange = { q: q + dq, r: r + dr };
+        break;
+    }
+}
+
+if (adjacentOrange && sparks.length > 0) {
+    const spark = sparks[0]; // only one can remain
+
+    let minDist = Infinity;
+    let bestCell = null;
+
+    // Test all cells around the orange
+    for (let [dq, dr] of dirs) {
+        const cq = adjacentOrange.q + dq;
+        const cr = adjacentOrange.r + dr;
+
+        // "on" cells are strict obstacles
+        if (get(cq, cr) === "on") continue;
+
+        // Choose the cell closest to the spark
+        const d = hexDistance(cq, cr, spark.q, spark.r);
+
+        if (d < minDist) {
+            minDist = d;
+            bestCell = { q: cq, r: cr };
+        }
+    }
+
+    // If the current cell is the best candidate,
+    // it becomes orange
+    if (bestCell && bestCell.q === q && bestCell.r === r) {
+        return PLAYER;
+    }
+}
+
+return state;
+return "orange";
+return "yellow";
