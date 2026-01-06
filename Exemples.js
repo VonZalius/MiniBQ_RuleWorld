@@ -301,3 +301,75 @@ if (adjacentOrange && sparks.length > 0) {
 return state;
 return "orange";
 return "yellow";
+
+
+
+// ================== Coins game with HUD ==================
+
+const GRID_RADIUS = 17;
+const PLAYER = "blue";
+const COIN = "yellow";
+const BUTTON = "green";
+const BUTTON_PRESSED = "lightgreen";
+const HUD_COIN = "orange";
+const HUD_WALL = "grey";
+
+if (!getHistory(-1, q, r))
+{
+    if ((q === 0 && r === GRID_RADIUS - 1) ||
+        (q === 0 && r === GRID_RADIUS - 3) ||
+        (q === 1 && r === GRID_RADIUS - 2) ||
+        (q === 1 && r === GRID_RADIUS - 3) ||
+        (q === -1 && r === GRID_RADIUS - 1) ||
+        (q === -1 && r === GRID_RADIUS - 2))
+        return BUTTON;
+
+    if (q === 0 && r === 0)
+        return PLAYER;
+
+    if (r === GRID_RADIUS ||
+        r === GRID_RADIUS - 1 ||
+        r === GRID_RADIUS - 2 ||
+        r === GRID_RADIUS - 3 ||
+        r === GRID_RADIUS - 4 ||
+        r === - GRID_RADIUS ||
+        r === - GRID_RADIUS + 1 ||
+        r === - GRID_RADIUS + 2 ||
+        r === - GRID_RADIUS + 3 ||
+        r === - GRID_RADIUS + 4)
+        return HUD_WALL;
+}
+
+if (state === PLAYER && (
+    get(1, GRID_RADIUS - 2) === BUTTON_PRESSED ||
+    get(-1, GRID_RADIUS - 2) === BUTTON_PRESSED ||
+    get(0, GRID_RADIUS - 1) === BUTTON_PRESSED ||
+    get(0, GRID_RADIUS - 3) === BUTTON_PRESSED ||
+    get(1, GRID_RADIUS - 3) === BUTTON_PRESSED ||
+    get(-1, GRID_RADIUS - 1) === BUTTON_PRESSED))
+    return "off";
+
+if (get(q-1, r) === PLAYER && get(1, GRID_RADIUS - 2) === BUTTON_PRESSED)
+    return PLAYER;
+if (get(q+1, r) === PLAYER && get(-1, GRID_RADIUS - 2) === BUTTON_PRESSED)
+    return PLAYER;
+if (get(q, r-1) === PLAYER && get(0, GRID_RADIUS - 1) === BUTTON_PRESSED)
+    return PLAYER;
+if (get(q, r+1) === PLAYER && get(0, GRID_RADIUS - 3) === BUTTON_PRESSED)
+    return PLAYER;
+if (get(q-1, r+1) === PLAYER && get(1, GRID_RADIUS - 3) === BUTTON_PRESSED)
+    return PLAYER;
+if (get(q+1, r-1) === PLAYER && get(-1, GRID_RADIUS - 1) === BUTTON_PRESSED)
+    return PLAYER;
+
+if (state === BUTTON_PRESSED)
+    return getHistory(-1, q, r); //A changer pour gerer les clic rapide, checker quel etat etait avant le bouton pressé
+    
+return state;
+return "lightgreen";
+
+
+
+
+
+
